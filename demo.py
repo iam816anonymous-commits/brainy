@@ -1,7 +1,8 @@
 import os
 import shutil
 import json
-from brain.storage.db import init_db, list_knowledge_objects, get_knowledge_object
+from brain.core.db import init_db, list_knowledge_objects, get_knowledge_object
+from brain.core.models import KnowledgeObject
 from brain.ingestion.filesystem.parser import ingest_directory
 from brain.memory.manager import (
     remember_working_memory,
@@ -60,7 +61,7 @@ class StorageManager:
 
     ingested_ids = ingest_directory(mock_dir, "BrainOS")
     print(f" -> Ingestion pipeline successfully matched and executed.")
-    print(f" -> Saved {len(ingested_ids)} canonical KnowledgeObjects (Project, Folder, Code, Class, Method, Test, Document)")
+    print(f" -> Saved {len(ingested_ids)} hierarchical KnowledgeObjects (Project, Folder, Code, Class, Method, Test, Document)")
     print("")
 
     # 3. Show dynamic Resumable Context Sessions
