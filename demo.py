@@ -15,11 +15,13 @@ from brain.context.assembler import ContextAssembler
 from brain.adapters.chatgpt import ChatGPTAdapter
 from brain.adapters.claude import ClaudeAdapter
 from brain.learning.pipeline import LearningPipeline
+from brain.context.session import ContextSessionManager
+from brain.context.trace import ObservabilityTraceRegistry
 
 def run_demo():
-    print("=========================================================")
-    print("   AI CONTEXT OPERATING SYSTEM (THE BRAIN) - E2E DEMO   ")
-    print("=========================================================\n")
+    print("=========================================================================")
+    print("      AI CONTEXT OPERATING SYSTEM (THE BRAIN) - PLATFORM DEMO            ")
+    print("=========================================================================\n")
 
     # 1. Setup local database
     db_file = "demo_brain.db"
@@ -27,16 +29,15 @@ def run_demo():
     if os.path.exists(db_file):
         os.remove(db_file)
 
-    print("[1] Initializing persistent Storage Layer...")
+    print("[1] Initializing persistent storage layer configurations...")
     init_db()
-    print(f" -> Database initialized successfully at '{db_file}'\n")
+    print(f" -> SQLite Structured and Graph database created at '{db_file}'\n")
 
-    # 2. Ingest a mock directory (Phase 2 - Project Model, Folder, Files)
-    print("[2] Simulating Project Ingestion Layer (Filesystem AST Parser)...")
+    # 2. Ingest a mock directory using our pluggable filesystem parser
+    print("[2] Running Ingestor with pluggable base parsing framework...")
     mock_dir = "mock_project"
     os.makedirs(mock_dir, exist_ok=True)
 
-    # Let's write a python file with methods and tests
     py_code = """
 class StorageManager:
     \"\"\"Handles caching and db connections.\"\"\"
@@ -58,118 +59,95 @@ class StorageManager:
         f.write("# Project BrainOS Mock\nThis is a mock project for context demonstration.")
 
     ingested_ids = ingest_directory(mock_dir, "BrainOS")
-    print(f" -> Successfully scanned and parsed directory tree of '{mock_dir}'")
-    print(f" -> Created {len(ingested_ids)} hierarchical KnowledgeObjects (Project, Folder, Code, Class, Method, Test, Document)")
+    print(f" -> Ingestion pipeline successfully matched and executed.")
+    print(f" -> Saved {len(ingested_ids)} canonical KnowledgeObjects (Project, Folder, Code, Class, Method, Test, Document)")
     print("")
 
-    # 3. Seed multi-layer memories (Phase 3 - Multi-layer memory types)
-    print("[3] Seeding Multi-Layer Memories...")
-
-    # A. Active Task (Working Memory)
-    remember_working_memory(
+    # 3. Show dynamic Resumable Context Sessions
+    print("[3] Simulating Context Session Manager (Platform Resumability)...")
+    session = ContextSessionManager.create_session(
         project="BrainOS",
-        current_task="Refactor storage.py cache routine",
+        goal="Complete cache refactoring task",
+        current_task="Implement SQL execution blocks",
         active_files=["storage.py"],
-        branch="feature/cache-refactor",
-        current_errors=["save_cache has no return value in line 7"]
+        branch="feature/cache-sql"
     )
-    print(" -> Seeded Working Memory (active task, branch, active files, current errors).")
+    print(f" -> Session '{session.id}' created and active.")
+    print(f"    - Current Task: {session.current_task}")
+    print(f"    - Branch: {session.branch}")
 
-    # B. Key Decision (Decision Memory)
+    # Pause session and write checkpoint
+    ContextSessionManager.add_checkpoint(
+        session_id=session.id,
+        checkpoint_name="AST Parsed Successfully",
+        notes="Pluggable PythonParser parsed and indexed class StorageManager"
+    )
+    print(" -> Added checkpoint marker to the current session (milestone saved).")
+    print(f" -> Retreived session checkpoints: {ContextSessionManager.get_session(session.id).checkpoints}")
+    print("")
+
+    # 4. Show Knowledge Provenance, Lineage, and Lifecycle
+    print("[4] Checking Knowledge Provenance Lineage & Lifecycles...")
+    # Seed decision object with detailed Lineage & Lifecycle
     remember_decision(
         project="BrainOS",
         decision_title="Don't use Redis cache",
-        reason="Due to restricted single-node Windows constraints.",
+        reason="Redis lacks single-node Windows deployment support in target environments.",
         alternatives="Use SQLite in-memory tables for transient caching."
     )
-    print(" -> Seeded Decision Memory (Rationale: don't use Redis on Windows constraints).")
 
-    # C. Known Failure (Failure Memory)
-    remember_failure(
-        project="BrainOS",
-        attempted_action="Use Redis server docker container on local machine",
-        reason_for_failure="WSL2 Docker backend port conflicts occurred repeatedly.",
-        resolution_or_lessons="Stick to lightweight serverless engines like SQLite."
-    )
-    print(" -> Seeded Failure Memory (Tried Redis server docker, WSL port conflict).")
-
-    # D. Workflow Pattern (Pattern Memory)
-    remember_pattern(
-        project="BrainOS",
-        pattern_name="Cache Set Flow",
-        steps=["Verify key exists", "Acquire SQLite connection", "Write statement", "Close connection"],
-        description="Standardized cache set transactions."
-    )
-    print(" -> Seeded Pattern Memory (Cache transaction steps).")
-
-    # E. Semantic Relation (Semantic Memory)
-    remember_semantic_relation("BrainOS", "SQLite", "alternative_to", "Redis")
-    print(" -> Seeded Semantic Relationship (SQLite is an alternative_to Redis).")
+    # Retrieve and inspect platform fields
+    dec_id = "decision::brainos::don't_use_redis_cache"
+    dec_obj = get_knowledge_object(dec_id)
+    if dec_obj:
+        # Enforce lifecycle and provenance
+        dec_obj.lifecycle = "Active"
+        dec_obj.visibility = "internal"
+        dec_obj.created_from = "Architectural Review Meeting"
+        dec_obj.verified_by = "Technical Director"
+        print(f" -> Canonical Object: {dec_obj.title}")
+        print(f"    - Lifecycle State: {dec_obj.lifecycle}")
+        print(f"    - Visibility Tier: {dec_obj.visibility}")
+        print(f"    - Provenance Source: {dec_obj.created_from}")
+        print(f"    - Verified By: {dec_obj.verified_by}")
     print("")
 
-    # 4. Run Retrieval and Context Ranking Orchestrator (Phases 5 & 6)
-    print("[4] Executing Multi-Stage Retrieval & Unified Context Ranking...")
+    # 5. Multi-stage query routing through our dynamic Retrieval Planner
+    print("[5] Query execution via dynamic Retrieval Planner...")
     orchestrator = RetrievalOrchestrator(project="BrainOS")
 
-    # Query A: Searching for Redis rationale
-    query_a = "Why not use Redis for caching?"
-    print(f"\n -> Query A: '{query_a}'")
-    results_a = orchestrator.retrieve_and_rank(query_a, limit=3)
-    for idx, (obj, score) in enumerate(results_a):
-        print(f"    [{idx+1}] [{obj.type}] {obj.title} (Score: {score:.2f})")
-        print(f"        Summary: {obj.summary}")
-
-    # Query B: Searching for Code reference
-    query_b = "How does StorageManager cache save work?"
-    print(f"\n -> Query B: '{query_b}'")
-    results_b = orchestrator.retrieve_and_rank(query_b, limit=3)
-    for idx, (obj, score) in enumerate(results_b):
-        print(f"    [{idx+1}] [{obj.type}] {obj.title} (Score: {score:.2f})")
-
+    query = "Why did we decide not to use Redis?"
+    print(f" -> Executing Query: '{query}'")
+    results = orchestrator.retrieve_and_rank(query, limit=3)
+    for idx, (obj, score, trace_metrics) in enumerate(results):
+        print(f"    [{idx+1}] [{obj.type}] {obj.title} (Score: {score:.1f})")
+        print(f"        Intent Routed: {trace_metrics.get('intent')}")
     print("")
 
-    # 5. Assemble Context Package and call Adapters (Phases 7, 8 & 9)
-    print("[5] Assembling Structured Model-Independent Context Package...")
+    # 6. Assemble context with Resource Manager Constraints (Token Budgets)
+    print("[6] Context Assembly & Resource Manager Constraint Enforcement...")
+    # Allocate small budget to trigger pyramidal compression!
     package = ContextAssembler.assemble_package(
         project="BrainOS",
-        user_goal="Refactor caching mechanism safely",
-        current_task_input="Replace save_cache with SQL table"
+        user_goal="Write secure cache SQL tables",
+        current_task_input="Refactor StorageManager",
+        token_budget=150  # extremely tight budget to showcase Resource limits
     )
+    print(" -> Standard Context Package successfully assembled with token limits:")
+    print(json.dumps(package.model_dump(), indent=2)[:650] + "\n... [truncated] ...\n")
 
-    print(" -> Generated Standard Context Package:")
-    print(json.dumps(package.model_dump(), indent=2)[:600] + "\n... [truncated for display] ...\n")
-
-    print(" -> Dispatching Standard Context through ChatGPT Adapter...")
-    gpt_response = ChatGPTAdapter.execute(package, "Should we use redis docker container or in-memory tables?")
-    print(f" -> ChatGPT says:\n{gpt_response}\n")
-
-    print(" -> Dispatching Standard Context through Claude Adapter...")
-    claude_response = ClaudeAdapter.execute(package, "Refactor save_cache signature")
-    print(f" -> Claude says:\n{claude_response}\n")
-
-    # 6. Learning Loop Dynamic Feedback (Phase 10)
-    print("[6] Activating Learning Pipeline Loop...")
-    # Simulate a user giving negative feedback about the StorageManager class (id is from parsed python file)
-    target_class_id = "file::brainos::storage.py::class::StorageManager"
-    print(f" -> Simulating failure outcome on object '{target_class_id}'...")
-
-    feedback_res = LearningPipeline.process_feedback(
-        obj_id=target_class_id,
-        success=False,
-        user_notes="StorageManager class was missing constructor parameters in runtime.",
-        project_name="BrainOS"
-    )
-    print(f" -> Feedback processed. updates: {feedback_res['updates_applied']}")
-
-    # Verify that a Failure memory was auto-logged by the learning pipeline
-    updated_obj = get_knowledge_object(target_class_id)
-    print(f" -> Adjusted Confidence: {updated_obj.confidence:.2f}")
-
-    db_failures = list_knowledge_objects(project="BrainOS", obj_type="Failure")
-    print(f" -> Automatically registered failures inside database count: {len(db_failures)}")
-    for f in db_failures:
-        if "StorageManager" in f.content:
-            print(f"    - [AUTO FAILURE] {f.title}: {f.summary}")
+    # 7. Observability Traces
+    print("[7] Auditing Observability Trails (Explainable Context traces)...")
+    latest_trace = ObservabilityTraceRegistry.get_latest_trace()
+    if latest_trace:
+        print(f" -> Trace Query: '{latest_trace.query}'")
+        print(f" -> Overall Execution Time: {latest_trace.execution_time_ms:.2f} ms")
+        print(f" -> Top Node Trace Details:")
+        for t in latest_trace.traces[:2]:
+            print(f"    - Object: {t.title} [{t.type}]")
+            print(f"      Similarity Score: {t.raw_similarity:.2f}")
+            print(f"      Included: {t.is_included} (Compression Ratio: {t.compression_ratio:.3f})")
+    print("")
 
     # Clean up mock directories and db
     if os.path.exists(mock_dir):
@@ -177,9 +155,10 @@ class StorageManager:
     if os.path.exists(db_file):
         os.remove(db_file)
 
-    print("\n=========================================================")
-    print("   AI CONTEXT OPERATING SYSTEM E2E DEMO COMPLETE!        ")
-    print("=========================================================")
+    print("=========================================================================")
+    print("               PLATFORM REFERENCE SIMULATION COMPLETE!                  ")
+    print("=========================================================================")
 
 if __name__ == "__main__":
     run_demo()
+    os.system("rm -f demo_brain.db")

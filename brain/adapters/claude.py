@@ -4,6 +4,9 @@ from brain.adapters.base import BaseAIAdapter
 from brain.context.assembler import ContextPackage
 
 class ClaudeAdapter(BaseAIAdapter):
+    """
+    Claude connector inside the Execution Integration Layer.
+    """
     @classmethod
     def execute(cls, pkg: ContextPackage, user_prompt: str, model: str = "claude-3-5-sonnet-20241022") -> str:
         """

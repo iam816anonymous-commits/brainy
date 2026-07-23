@@ -15,6 +15,8 @@ from brain.memory.manager import (
     remember_pattern
 )
 from brain.context.assembler import ContextAssembler, ContextPackage
+from brain.context.session import ContextSession, ContextSessionManager
+from brain.context.trace import ContextTrace, ObservabilityTraceRegistry
 
 router = APIRouter()
 
@@ -45,12 +47,22 @@ class RememberRequest(BaseModel):
     relations: List[Dict[str, Any]] = []
     source: str = ""
     owner: str = ""
+    lifecycle: str = "Created"
+    created_from: str = ""
+    derived_from: str = ""
+    verified_by: str = ""
+    visibility: str = "internal"
+    permissions: Dict[str, Any] = {}
+    group: str = ""
+    metadata: Dict[str, Any] = {}
+    payload: Dict[str, Any] = {}
 
 class ContextRequest(BaseModel):
     project: str
     user_goal: str
     current_task: Optional[str] = None
     model: Optional[str] = None
+    token_budget: int = 4000
 
 class ConversationCreate(BaseModel):
     project: str
@@ -91,6 +103,17 @@ class FeedbackRequest(BaseModel):
     id: str
     success: bool
     feedback: str = ""
+
+class SessionCreateRequest(BaseModel):
+    project: str
+    goal: str = ""
+    current_task: str = ""
+    active_files: List[str] = []
+    branch: str = "main"
+
+class CheckpointCreateRequest(BaseModel):
+    name: str
+    notes: str = ""
 
 # --- Routes ---
 
@@ -137,6 +160,15 @@ def remember_generic(data: RememberRequest):
         relations=data.relations,
         source=data.source,
         owner=data.owner,
+        lifecycle=data.lifecycle,
+        created_from=data.created_from,
+        derived_from=data.derived_from,
+        verified_by=data.verified_by,
+        visibility=data.visibility,
+        permissions=data.permissions,
+        group=data.group,
+        metadata=data.metadata,
+        payload=data.payload,
         created=datetime.now(timezone.utc).isoformat(),
         updated=datetime.now(timezone.utc).isoformat()
     )
@@ -148,7 +180,8 @@ def get_context_post(data: ContextRequest):
     package = ContextAssembler.assemble_package(
         project=data.project,
         user_goal=data.user_goal,
-        current_task_input=data.current_task
+        current_task_input=data.current_task,
+        token_budget=data.token_budget
     )
     return package
 
@@ -224,13 +257,11 @@ def submit_feedback(data: FeedbackRequest):
     if not obj:
         raise HTTPException(status_code=404, detail="Knowledge object not found")
 
-    # Adjust confidence and importance parameters dynamically based on user outcomes!
     if data.success:
         obj.confidence = min(obj.confidence + 0.1, 1.0)
         obj.importance = min(obj.importance + 0.5, 10.0)
     else:
         obj.confidence = max(obj.confidence - 0.2, 0.0)
-        # If failure, we flag it as less reliable or note the mismatch
         obj.tags = list(set(obj.tags) | {"flagged-failure"})
 
     obj.updated = datetime.now(timezone.utc).isoformat()
@@ -241,34 +272,29 @@ def submit_feedback(data: FeedbackRequest):
 def get_context_get(
     project: str,
     user_goal: str = Query(..., description="The user query or intention"),
-    current_task: Optional[str] = Query(None, description="The current active task")
+    current_task: Optional[str] = Query(None, description="The current active task"),
+    token_budget: int = Query(4000, description="Context package token budget allocation")
 ):
     package = ContextAssembler.assemble_package(
         project=project,
         user_goal=user_goal,
-        current_task_input=current_task
+        current_task_input=current_task,
+        token_budget=token_budget
     )
     return package
 
 @router.get("/graph")
 def get_graph(project: Optional[str] = None):
     manager = KnowledgeGraphManager(project_name=project)
-    # Serialize entire loaded graph structure
     nodes = list(manager.graph.nodes)
     sub = manager.get_subgraph(nodes)
     return sub
 
 @router.get("/timeline")
 def get_timeline(project: Optional[str] = None):
-    """
-    Returns chronological timeline of ingested events and historical episodes.
-    """
     objs = list_knowledge_objects(project=project)
-    # Filter for episodic/workflow, decision, conversation logs, failure
     timeline_types = {"Workflow", "Decision", "Conversation", "Failure", "Meeting"}
     filtered = [o for o in objs if o.type in timeline_types]
-
-    # Sort chronologically by created date
     filtered.sort(key=lambda x: x.created or "")
 
     return [
@@ -284,9 +310,6 @@ def get_timeline(project: Optional[str] = None):
 
 @router.get("/memories")
 def get_memories(project: Optional[str] = None, type: Optional[str] = None):
-    """
-    Lists memories filtered by project or unified memory type.
-    """
     objs = list_knowledge_objects(project=project, obj_type=type)
     return [
         {
@@ -296,7 +319,48 @@ def get_memories(project: Optional[str] = None, type: Optional[str] = None):
             "summary": o.summary,
             "importance": o.importance,
             "confidence": o.confidence,
-            "tags": o.tags
+            "tags": o.tags,
+            "lifecycle": o.lifecycle,
+            "visibility": o.visibility
         }
         for o in objs
     ]
+
+# --- Context Resumable Session Endpoints ---
+
+@router.post("/sessions", response_model=ContextSession)
+def create_session(data: SessionCreateRequest):
+    return ContextSessionManager.create_session(
+        project=data.project,
+        goal=data.goal,
+        current_task=data.current_task,
+        active_files=data.active_files,
+        branch=data.branch
+    )
+
+@router.get("/sessions/{session_id}", response_model=ContextSession)
+def get_session(session_id: str):
+    sess = ContextSessionManager.get_session(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return sess
+
+@router.post("/sessions/{session_id}/checkpoints", response_model=ContextSession)
+def add_checkpoint(session_id: str, data: CheckpointCreateRequest):
+    sess = ContextSessionManager.add_checkpoint(session_id, data.name, data.notes)
+    if not sess:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return sess
+
+@router.get("/sessions", response_model=List[ContextSession])
+def list_sessions(project: Optional[str] = None):
+    return ContextSessionManager.list_sessions(project)
+
+# --- Observability Trace Endpoints ---
+
+@router.get("/traces", response_model=List[ContextTrace])
+def list_explainability_traces():
+    """
+    Returns the history of execution tracing details for explainable context retrievals.
+    """
+    return ObservabilityTraceRegistry.list_traces()

@@ -2,6 +2,11 @@ from typing import Dict, Any, List
 from brain.context.assembler import ContextPackage
 
 class BaseAIAdapter:
+    """
+    Base class for adapters inside the Execution Integration Layer.
+    These adapters translate standardized context package payloads into model-optimized
+    prompt completions for external execution environments.
+    """
     @staticmethod
     def format_system_prompt(pkg: ContextPackage, user_prompt: str) -> str:
         """

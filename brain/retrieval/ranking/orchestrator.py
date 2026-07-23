@@ -12,9 +12,11 @@ class RetrievalOrchestrator:
         self.project = project
         self.graph_manager = KnowledgeGraphManager(project_name=project)
 
-    def retrieve_and_rank(self, query: str, limit: int = 10) -> List[Tuple[KnowledgeObject, float]]:
+    def retrieve_and_rank(self, query: str, limit: int = 10) -> List[Tuple[KnowledgeObject, float, Dict[str, float]]]:
         """
         Retrieves relevant context using the Retrieval Planner and ranks candidates.
+        Returns:
+            List of (KnowledgeObject, final_score, trace_metrics_dictionary)
         """
         # Ensure graph is fresh
         self.graph_manager.build_graph()
@@ -34,7 +36,7 @@ class RetrievalOrchestrator:
             all_objs = list_knowledge_objects(project=self.project)
             candidate_ids = {obj.id for obj in all_objs[:15]}
 
-        ranked_candidates: List[Tuple[KnowledgeObject, float]] = []
+        ranked_candidates: List[Tuple[KnowledgeObject, float, Dict[str, float]]] = []
         query_words = set(re.findall(r"\w+", query.lower()))
 
         for cid in candidate_ids:
@@ -99,7 +101,20 @@ class RetrievalOrchestrator:
                 noise_penalty
             )
 
-            ranked_candidates.append((obj, final_score))
+            trace_metrics = {
+                "raw_similarity": similarity_score,
+                "importance_boost": importance_score,
+                "recency_boost": recency_score,
+                "project_boost": project_match,
+                "file_boost": file_match,
+                "graph_boost": dependency_boost,
+                "intent_boost": intent_boost,
+                "historical_success_boost": historical_success,
+                "noise_penalty": noise_penalty,
+                "intent": intent
+            }
+
+            ranked_candidates.append((obj, final_score, trace_metrics))
 
         ranked_candidates.sort(key=lambda x: x[1], reverse=True)
         return ranked_candidates[:limit]

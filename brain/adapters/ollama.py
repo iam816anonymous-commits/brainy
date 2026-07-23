@@ -3,6 +3,9 @@ from brain.adapters.base import BaseAIAdapter
 from brain.context.assembler import ContextPackage
 
 class OllamaAdapter(BaseAIAdapter):
+    """
+    Ollama connector inside the Execution Integration Layer.
+    """
     @classmethod
     def execute(cls, pkg: ContextPackage, user_prompt: str, model: str = "llama3", host: str = "http://localhost:11434") -> str:
         """
@@ -23,7 +26,6 @@ class OllamaAdapter(BaseAIAdapter):
         except Exception:
             pass
 
-        # Return fallback mock if Ollama server isn't running locally
         return (
             f"[MOCK OLLAMA RESPONSE ({model} @ {host})]\n"
             f"Ollama server was not reachable. Fallback mock generated successfully.\n"

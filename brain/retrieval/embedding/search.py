@@ -1,9 +1,9 @@
 import os
 import math
-import json
 from typing import List, Tuple, Optional
 import numpy as np
 import requests
+from brain.retrieval.base import BaseRetriever
 from brain.storage.models import KnowledgeObject
 from brain.storage.db import list_knowledge_objects
 
@@ -15,16 +15,11 @@ def cosine_similarity(v1: np.ndarray, v2: np.ndarray) -> float:
     return float(np.dot(v1, v2) / (norm1 * norm2))
 
 class LocalVectorSimilarity:
-    """
-    Lightweight, local TF-IDF Vectorizer using numpy to represent documents and query,
-    then computing exact cosine similarity. Zero external dependencies.
-    """
     @staticmethod
     def compute_similarity(query: str, objs: List[KnowledgeObject]) -> List[Tuple[KnowledgeObject, float]]:
         if not objs:
             return []
 
-        # 1. Build Vocabulary
         def tokenize(text: str) -> List[str]:
             return [w for w in text.lower().split() if len(w) > 2]
 
@@ -39,10 +34,8 @@ class LocalVectorSimilarity:
         vocab = sorted(list(vocab))
         vocab_index = {w: i for i, w in enumerate(vocab)}
 
-        # 2. Compute IDF
         N = len(objs) + 1
         df = {w: 0 for w in vocab}
-        # Include query in IDF
         for w in set(tokenize(query)):
             if w in df:
                 df[w] += 1
@@ -53,7 +46,6 @@ class LocalVectorSimilarity:
 
         idf = {w: math.log(N / (df[w] + 1)) + 1.0 for w in vocab}
 
-        # 3. Vectorize
         def get_tfidf_vector(tokens: List[str]) -> np.ndarray:
             vec = np.zeros(len(vocab))
             tf = {}
@@ -76,7 +68,10 @@ class LocalVectorSimilarity:
         results.sort(key=lambda x: x[1], reverse=True)
         return results
 
-class EmbeddingSearcher:
+class EmbeddingRetriever(BaseRetriever):
+    def get_name(self) -> str:
+        return "embedding_retriever"
+
     @staticmethod
     def get_openai_embedding(text: str, api_key: str) -> Optional[List[float]]:
         try:
@@ -85,7 +80,6 @@ class EmbeddingSearcher:
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             }
-            # Truncate text if excessively long
             data = {
                 "input": text[:8000],
                 "model": "text-embedding-3-small"
@@ -97,28 +91,26 @@ class EmbeddingSearcher:
             pass
         return None
 
-    @classmethod
-    def search(cls, query: str, project: str) -> List[Tuple[KnowledgeObject, float]]:
-        """
-        Executes semantic embedding search. Falls back to deterministic local numpy TF-IDF vector similarity
-        if OPENAI_API_KEY is not defined or request fails.
-        """
+    def retrieve(self, query: str, project: str, **kwargs) -> List[Tuple[KnowledgeObject, float]]:
         objs = list_knowledge_objects(project=project)
         if not objs:
             return []
 
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
-            # Fallback to local TF-IDF vector space
-            return LocalVectorSimilarity.compute_similarity(query, objs)
+            # Fallback and scale cosine output (0.0 to 1.0) up to (0.0 to 10.0)
+            return [(obj, sim * 10.0) for obj, sim in LocalVectorSimilarity.compute_similarity(query, objs)]
 
-        # Attempt OpenAI embeddings
-        query_emb = cls.get_openai_embedding(query, api_key)
+        query_emb = self.get_openai_embedding(query, api_key)
         if not query_emb:
-            return LocalVectorSimilarity.compute_similarity(query, objs)
+            return [(obj, sim * 10.0) for obj, sim in LocalVectorSimilarity.compute_similarity(query, objs)]
 
-        # In a real heavy-duty app, we'd cache embeddings in DB. For v1, we can compute query embedding
-        # and do a local fallback or try to embed docs. Since embedding docs on-the-fly without cache
-        # would burn API usage, we'll gracefully blend by using LocalVectorSimilarity as it is extremely
-        # accurate for code-based search context. Let's do that!
-        return LocalVectorSimilarity.compute_similarity(query, objs)
+        return [(obj, sim * 10.0) for obj, sim in LocalVectorSimilarity.compute_similarity(query, objs)]
+
+class EmbeddingSearcher:
+    # Backwards compatibility helper
+    @classmethod
+    def search(cls, query: str, project: str) -> List[Tuple[KnowledgeObject, float]]:
+        retriever = EmbeddingRetriever()
+        # Scale back to 0-1 cosine similarity for compatibility
+        return [(obj, score / 10.0) for obj, score in retriever.retrieve(query, project)]

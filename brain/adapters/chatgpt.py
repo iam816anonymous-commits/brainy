@@ -4,6 +4,9 @@ from brain.adapters.base import BaseAIAdapter
 from brain.context.assembler import ContextPackage
 
 class ChatGPTAdapter(BaseAIAdapter):
+    """
+    ChatGPT connector inside the Execution Integration Layer.
+    """
     @classmethod
     def execute(cls, pkg: ContextPackage, user_prompt: str, model: str = "gpt-4o") -> str:
         """
@@ -13,7 +16,6 @@ class ChatGPTAdapter(BaseAIAdapter):
         system_injection = cls.format_system_prompt(pkg, user_prompt)
 
         if not api_key:
-            # Deterministic, high-fidelity mock response showing prompt assembly
             return (
                 f"[MOCK CHATGPT RESPONSE ({model})]\n"
                 f"Successfully parsed standard context for project '{pkg.project}'.\n"

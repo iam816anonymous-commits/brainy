@@ -1,79 +1,90 @@
 import re
 from typing import List, Dict, Any, Tuple, Set
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import list_knowledge_objects, get_knowledge_object
+from brain.retrieval.base import BaseRetriever
 from brain.retrieval.intent import IntentDetector
-from brain.retrieval.keyword.search import KeywordSearcher
-from brain.retrieval.embedding.search import EmbeddingSearcher
+from brain.retrieval.keyword.search import KeywordRetriever
+from brain.retrieval.embedding.search import EmbeddingRetriever
+from brain.retrieval.graph_retriever import GraphRetriever
+from brain.retrieval.decision_retriever import DecisionRetriever
+from brain.retrieval.failure_retriever import FailureRetriever
+from brain.retrieval.recent_retriever import RecentRetriever
 
 class RetrievalPlanner:
     """
-    Retrieval Planner decides which context retrieval strategies to invoke
-    and how to blend them based on the detected query intent.
+    Retrieval Planner decides which context retrieval strategies (Retriever Plugins)
+    to invoke and how to blend them based on the detected query intent.
     """
-    @staticmethod
-    def plan_and_retrieve(
+    def __init__(self):
+        # Register pluggable retriever subsystems
+        self.retrievers: Dict[str, BaseRetriever] = {
+            "keyword": KeywordRetriever(),
+            "embedding": EmbeddingRetriever(),
+            "graph": GraphRetriever(),
+            "decision": DecisionRetriever(),
+            "failure": FailureRetriever(),
+            "recent": RecentRetriever()
+        }
+
+    def plan_and_execute(
+        self,
         query: str,
         project: str,
         graph_manager: Any
     ) -> Tuple[Dict[str, float], Dict[str, float], str]:
         """
-        Plans retrieval and routes to specific query-dependent subsystems.
+        Plans retrieval and routes to specific query-dependent retriever plugins.
         Returns:
             - candidate_similarities: Dict[obj_id, similarity_score]
             - graph_boosts: Dict[obj_id, boost_score]
             - intent: str (The detected intent)
         """
-        # 1. Detect Intent
         intent = IntentDetector.detect_intent(query)
 
         candidate_similarities: Dict[str, float] = {}
         graph_boosts: Dict[str, float] = {}
 
-        # 2. Planning decisions: activate specific search modules based on intent
-        # 2A. Core strategy flags
-        run_keyword = True
-        run_embedding = True
-        run_graph_expansion = True
+        # Decide which retrievers to activate based on detected intent
+        active_retriever_keys = ["keyword", "embedding"]
 
-        # Adjust searches dynamically to save token budgets and focus queries
         if intent == "DECISION_HISTORY":
-            # For decisions, we want deep keyword searches on rationales & graph lookups
-            run_embedding = False
+            active_retriever_keys = ["keyword", "decision", "graph"]
+        elif intent == "DEBUG_ERROR":
+            active_retriever_keys = ["keyword", "failure", "recent"]
         elif intent == "TASK_STATUS":
-            # For task statuses, rely heavily on direct keyword lookup and recency
-            run_embedding = False
-            run_graph_expansion = False
+            active_retriever_keys = ["keyword", "recent"]
+        elif intent == "ARCHITECTURE":
+            active_retriever_keys = ["keyword", "graph", "embedding"]
 
-        # Execute Keyword Search
-        if run_keyword:
-            kw_results = KeywordSearcher.search(query, project)
-            for obj, score in kw_results:
-                norm_score = min(score * 2.0, 10.0)
-                candidate_similarities[obj.id] = max(candidate_similarities.get(obj.id, 0.0), norm_score)
+        # Execute active retrievers
+        for key in active_retriever_keys:
+            retriever = self.retrievers.get(key)
+            if retriever:
+                results = retriever.retrieve(query=query, project=project, graph_manager=graph_manager)
+                for obj, score in results:
+                    if key == "graph":
+                        # Graph hits yield explicit dependency boosts
+                        graph_boosts[obj.id] = max(graph_boosts.get(obj.id, 0.0), score)
+                    else:
+                        candidate_similarities[obj.id] = max(candidate_similarities.get(obj.id, 0.0), score)
 
-        # Execute Embedding Search
-        if run_embedding:
-            emb_results = EmbeddingSearcher.search(query, project)
-            for obj, score in emb_results:
-                norm_score = score * 10.0
-                candidate_similarities[obj.id] = max(candidate_similarities.get(obj.id, 0.0), norm_score)
-
-        # Execute Graph Neighbor Search / Expansion
-        if run_graph_expansion:
-            # Expand on top hits
+        # Standard neighbor expansion if graph wasn't explicitly triggered as a core retriever
+        if "graph" not in active_retriever_keys:
             top_hits = sorted(candidate_similarities.items(), key=lambda x: x[1], reverse=True)[:3]
             for hit_id, _ in top_hits:
-                # Direct neighbors get +3.0 boost
                 neighbors_1 = graph_manager.get_related_nodes(hit_id, max_distance=1)
                 for n_id in neighbors_1:
                     if n_id != hit_id:
                         graph_boosts[n_id] = max(graph_boosts.get(n_id, 0.0), 3.0)
 
-                # 2nd-degree neighbors get +1.5 boost
                 neighbors_2 = graph_manager.get_related_nodes(hit_id, max_distance=2)
                 for n_id in neighbors_2:
                     if n_id != hit_id and n_id not in neighbors_1:
                         graph_boosts[n_id] = max(graph_boosts.get(n_id, 0.0), 1.5)
 
         return candidate_similarities, graph_boosts, intent
+
+    # Maintain backwards compatibility for static/classmethod usages
+    @classmethod
+    def plan_and_retrieve(cls, query: str, project: str, graph_manager: Any) -> Tuple[Dict[str, float], Dict[str, float], str]:
+        planner = cls()
+        return planner.plan_and_execute(query, project, graph_manager)

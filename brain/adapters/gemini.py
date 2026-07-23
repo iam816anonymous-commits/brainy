@@ -4,6 +4,9 @@ from brain.adapters.base import BaseAIAdapter
 from brain.context.assembler import ContextPackage
 
 class GeminiAdapter(BaseAIAdapter):
+    """
+    Gemini connector inside the Execution Integration Layer.
+    """
     @classmethod
     def execute(cls, pkg: ContextPackage, user_prompt: str, model: str = "gemini-1.5-pro") -> str:
         """
