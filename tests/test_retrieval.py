@@ -3,7 +3,9 @@ import pytest
 from brain.storage.db import init_db, save_knowledge_object
 from brain.storage.models import KnowledgeObject
 from brain.retrieval.intent import IntentDetector
+from brain.retrieval.planner import RetrievalPlanner
 from brain.retrieval.ranking.orchestrator import RetrievalOrchestrator
+from brain.graph.graph_manager import KnowledgeGraphManager
 
 @pytest.fixture(autouse=True)
 def setup_test_db(tmp_path):
@@ -21,6 +23,35 @@ def test_intent_detection():
     assert IntentDetector.detect_intent("Show me the class structure diagram") == "ARCHITECTURE"
     assert IntentDetector.detect_intent("Write a python method to add arrays") == "CODE_SEARCH"
     assert IntentDetector.detect_intent("Hello how is the weather today?") == "GENERAL"
+
+def test_retrieval_planner_routing():
+    # Save a decision node and general info
+    save_knowledge_object(KnowledgeObject(
+        id="d-1", type="Decision", project="PlanProj", title="Decision Chosen", summary="Selected SQLite", content="We chose SQLite"
+    ))
+    save_knowledge_object(KnowledgeObject(
+        id="f-1", type="Fact", project="PlanProj", title="Fact info", summary="General facts", content="Standard vector calculations"
+    ))
+
+    gm = KnowledgeGraphManager(project_name="PlanProj")
+
+    # 1. Decision history intent should run keyword but bypass embeddings
+    candidates, boosts, intent = RetrievalPlanner.plan_and_retrieve(
+        query="Why did we choose SQLite?",
+        project="PlanProj",
+        graph_manager=gm
+    )
+    assert intent == "DECISION_HISTORY"
+    assert "d-1" in candidates
+
+    # 2. Task status intent should bypass embeddings and graph expansion
+    candidates_task, boosts_task, intent_task = RetrievalPlanner.plan_and_retrieve(
+        query="what is my current task?",
+        project="PlanProj",
+        graph_manager=gm
+    )
+    assert intent_task == "TASK_STATUS"
+    assert len(boosts_task) == 0  # graph expansion bypassed!
 
 def test_retrieval_and_ranking_orchestration():
     # Save a few diverse objects

@@ -1,64 +1,126 @@
-# AI Context Operating System (The Brain) — Version 1
+# AI Context Operating System (The Brain) — Foundational Reference Implementation (v1)
 
-Today's AI systems forget context, don't share knowledge between models, and have constrained context windows. **The Brain** solves all three by becoming the **persistent intelligence layer** that sits between users/projects and any LLM (ChatGPT, Claude, Gemini, Ollama, etc.).
+Today's AI systems forget context, don't share knowledge between models, and have constrained context windows. **The Brain** solves all three by becoming the **persistent, model-independent intelligence layer** that sits between users/projects and any LLM (ChatGPT, Claude, Gemini, Ollama, etc.).
 
-This repository contains the complete, production-grade **Version 1 (v1)** implementation of the Brain as a service for single-project context management.
-
----
-
-## 🚀 Architectural Overview
-
-```
-┌────────────────────────────────────────────┐
-│            CLIENT LAYER                    │
-├────────────────────────────────────────────┤
-│ ChatGPT │ Claude │ Gemini │ Local LLM │ API│
-└────────────────────────────────────────────┘
-                    │
-                    ▼
-┌────────────────────────────────────────────┐
-│          CONTEXT API GATEWAY               │
-└────────────────────────────────────────────┘
-                    │
-                    ▼
-┌────────────────────────────────────────────┐
-│          CONTEXT ENGINE                    │
-│                                            │
-│ Intent Detection                           │
-│ Memory Retrieval                           │
-│ Ranking                                    │
-│ Compression                                │
-│ Context Assembly                           │
-└────────────────────────────────────────────┘
-                    │
-                    ▼
-┌────────────────────────────────────────────┐
-│             KNOWLEDGE CORE                 │
-├────────────────────────────────────────────┤
-│ Facts      │ Decisions  │ Failures         │
-│ Code       │ Docs       │ Conversations    │
-└────────────────────────────────────────────┘
-                    │
-                    ▼
-┌────────────────────────────────────────────┐
-│          STORAGE LAYER                     │
-│ SQLite + NetworkX Graph                    │
-└────────────────────────────────────────────┘
-```
-
-The Brain functions as **infrastructure**, rather than an AI agent. It never "thinks" or replaces the LLM; instead, it:
-1. **Ingests and Organizes**: Parses directory structures (with native Abstract Syntax Tree extraction of python Classes/Methods/Tests) into connected Graph structures.
-2. **Maintains Multi-Tier Memory**: Tracks Working Memory (active tasks), Episodic History (event series), Semantic Relations, Architectural Decisions, past Failures, and Workflow Patterns.
-3. **Retrieves and Ranks**: Scores candidates dynamically based on Query Intent, Semantic Vector Similarity (local numpy TF-IDF or OpenAI), Recency, Importance, Project Match, and Graph Distance.
-4. **Compresses & Packages**: Conforms the payload into a model-independent structured Context JSON Package, fitting it precisely inside standard token budgets.
-5. **Continuous Learning**: Evaluates success/failure outcomes to dynamically adapt retrieval confidence weights and auto-register Failure Memories.
+This repository contains the **Foundational Reference Implementation (v1)** of the Brain as a service for single-project context management.
 
 ---
 
-## 📦 Installation & Setup Guides
+## 🏛️ Reframed 6-Layer Architecture
+
+Instead of a coupled memory table model, the Brain is designed around a clean separation of concerns mapped across six core layers:
+
+```
+                  AI Context Operating System (The Brain)
+
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ 1. INTEGRATION LAYER (Connectors: Filesystem, GitHub, Slack, docs, etc) │
+  └─────────────────────────────────────────────────────────────────────────┘
+                                       │ Ingestion Pipeline
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ 2. KNOWLEDGE LAYER (Canonical Unified KnowledgeObjects)                  │
+  └─────────────────────────────────────────────────────────────────────────┘
+                                       │ Search & Expansion
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ 3. RETRIEVAL LAYER (Intent Detection, Planner, Multi-Stage Search)     │
+  └─────────────────────────────────────────────────────────────────────────┘
+                                       │ Score & Filter
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ 4. CONTEXT LAYER (Pyramidal Compression, Standard JSON Context Package)  │
+  └─────────────────────────────────────────────────────────────────────────┘
+                                       │ Adapter Injections
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ 5. RUNTIME LAYER (LLM Adapters: ChatGPT, Claude, Gemini, Ollama)        │
+  └─────────────────────────────────────────────────────────────────────────┘
+                                       │ Execution Feedback
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ 6. LEARNING LAYER (Outcome Evaluation, Auto-Logged Failure Lessons)     │
+  └─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. Integration Layer (Connector & Ingestion Pipelines)
+This layer ingests raw events, source files, documentation, and metadata. It routes raw data through our standard ingestion pipeline:
+```
+Source (Filesystem/Git/Web) ──► Pluggable Parser ──► Normalizer ──► Entity Extractor ──► Store
+```
+* **Pluggable Parsers**: Features an abstract `BaseParser` interface. For v1, we provide a concrete `PythonParser` (with native Abstract Syntax Tree extraction of python Classes/Methods/Tests) and a `DefaultParser` for generic document text. Other language parsers (Rust, Go, TypeScript) can easily be plugged in.
+
+### 2. Knowledge Layer (Canonical Internal Model)
+Everything inside the Brain is modeled as a typed, canonical **`KnowledgeObject`**. Instead of disconnected tables, all entries share a common model mapping attributes (id, type, project, title, summary, content, importance, confidence, tags, relations). This unified data structure handles:
+- **Active Task / Working Context**
+- **Architectural Decisions**
+- **Known Failure Logs (Lessons-Learned)**
+- **Semantic Entities**
+- **Design Patterns**
+- **Conversation dialogue logs**
+- **Code components**
+
+**Storage Abstractions**:
+Our storage contracts abstract the underlying databases so that the architecture remains decoupled:
+- **Structured Storage**: Mapped to SQLite in v1. Easily replaceable with PostgreSQL.
+- **Graph Storage**: Model relationships mapped using NetworkX in v1. Replaceable with Neo4j.
+- **Vector Storage**: Cosine similarity calculations on local numpy TF-IDF vectors (or OpenAI embeddings) in v1. Replaceable with Qdrant, Milvus, or FAISS.
+
+### 3. Retrieval Layer (Retrieval Planner & Pipeline)
+Never rely on embedding distance alone. The Retrieval Layer employs a dedicated **Retrieval Planner** to orchestrate search.
+
+```
+                      User Query
+                           │
+                           ▼
+                   Intent Detection
+                           │
+                           ▼
+                   Retrieval Planner
+                           │
+         ┌─────────────────┼─────────────────┐
+         ▼                 ▼                 ▼
+   Keyword Search   Embedding Search   Graph Search
+   (Structured DB)   (Local Vector)    (Relations)
+         │                 │                 │
+         └─────────────────┼─────────────────┘
+                           ▼
+                     Candidate Merge
+                           │
+                           ▼
+                    Context Ranking
+              (Formula-based unified score)
+                           │
+                           ▼
+                 Context Compression
+```
+
+* **Retrieval Planner**: Decides which specific retrieval strategies to execute based on detected query intent. For example, if a user asks for decision rationales, it dynamically focuses on Decision databases and graph traversals.
+* **Unified Context Ranking**: Scores candidates based on:
+  $$\text{Score} = \text{Semantic Similarity} + \text{Importance} + \text{Recency} + \text{Project Match} + \text{File Match} + \text{Dependency Distance} + \text{Historical Success} - \text{Noise}$$
+
+### 4. Context Layer (Standardized Context Packages)
+Compiles, structures, and limits the payload to fit precisely inside token budgets.
+- **Pyramidal Compression**: Truncates content elegantly, presenting full detail for top hits and summaries for secondary nodes.
+- **Model-Independent Context Package**: Outputs an identical JSON package regardless of which model is eventually used.
+
+### 5. Runtime Layer (Platform Adapters)
+Contains reusable, standard connectors for top AI chatbots. Adapters format standard context package payloads into model-optimized prompt completions.
+- **ChatGPT / OpenAI Adapter**
+- **Claude / Anthropic Adapter**
+- **Gemini / Google Adapter**
+- **Ollama Local Adapter**
+
+### 6. Learning Layer (Outcome-Driven Loops)
+Refines the Context OS dynamically by processing outcome feedback.
+- If a chosen context results in an execution failure, the Learning Pipeline dynamically penalizes its confidence rating and automatically registers a new **Failure Memory** object to ensure future retrieval runs avoid repeating that failure.
+
+---
+
+## 📦 Installation & Setup Guide
 
 ### Option A: Virtual Environment Setup (Recommended)
-This keeps dependencies isolated from your system Python.
+This isolates dependencies from your system's global environment.
 
 1. **Create the virtual environment**:
    ```bash
@@ -79,7 +141,7 @@ This keeps dependencies isolated from your system Python.
      .\venv\Scripts\Activate.ps1
      ```
 
-3. **Install the package in editable mode**:
+3. **Install the package**:
    ```bash
    pip install --upgrade pip
    pip install -e .[dev]
@@ -88,108 +150,54 @@ This keeps dependencies isolated from your system Python.
 ---
 
 ### Option B: Global System Environment Setup
-If you prefer installing packages directly onto your system environment.
-
-1. **Install dependencies and setup package globally**:
-   ```bash
-   pip3 install -e .[dev]
-   ```
+To install packages directly into your global system Python workspace:
+```bash
+pip3 install -e .[dev]
+```
 
 ---
 
-## 🛠️ Configuration Options
+## 🎮 Execution Commands
 
-The system runs out of the box with zero setup. You can customize behavior using Environment Variables:
-
-| Variable | Description | Default |
-| --- | --- | --- |
-| `BRAIN_DB_PATH` | Path to the persistent SQLite database file | `brain.db` |
-| `OPENAI_API_KEY` | Optional. If provided, enables real OpenAI Embeddings and ChatGPT API calls. If absent, falls back to local numpy TF-IDF vectors and high-fidelity mocks. | `None` |
-| `ANTHROPIC_API_KEY` | Optional. Enables real Claude API completion. If absent, falls back to mocks. | `None` |
-| `GEMINI_API_KEY` | Optional. Enables real Google Gemini API execution. If absent, falls back to mocks. | `None` |
-
----
-
-## 🎮 How to Run
-
-### 1. Run the Interactive End-to-End Simulation Demo
+### 1. Run the Interactive Simulation Demo
 We provide a comprehensive demonstration script (`demo.py`) that showcases:
-- Database creation and SQLite table setup.
-- Automatic AST-based parsing of a Python source directory structure.
-- Multi-layer memory logging (Working task, decisions, failures, semantic links).
-- Multi-stage retrieval and unified context ranking.
-- Context package assembly & dispatching to ChatGPT / Claude adapters.
-- Learning pipeline processing (updating object weight parameters and auto-generating failure logs).
+- System boot and database setup.
+- Scan of a directory structure using the Python AST parser.
+- Logging of multi-tier memories (Active task, decisions, failures, patterns, semantic links).
+- Dynamic Retrieval Planner execution and ranking.
+- Prompt construction and execution via ChatGPT/Claude Adapters.
+- Dynamically processing failures in the Learning Loop.
 
-Run the demo using:
 ```bash
 python3 demo.py
 ```
 
-#### Expected Output of the Demo:
-You will see a structured console layout highlighting:
-- Success logs for database setup and directory AST scanning.
-- Discovered and ranked candidate nodes for varied queries (e.g., matching "Why not use Redis?" directly to the Decision and Failure memories).
-- Beautiful JSON context package outputs.
-- Mock adapter execution blocks showing standard context prompts being built.
-- The outcome learning loop in action: degrading confidence of a failed class from `1.0` to `0.8` and automatically creating a corresponding `Failure` record.
-
----
-
 ### 2. Start the REST API Gateway
-Start the high-performance FastAPI server locally (defaulting to port `8000`):
+Launch the FastAPI web service:
 ```bash
 uvicorn brain.api.app:app --reload --host 127.0.0.1 --port 8000
 ```
-
-Once the server is running, you can access the **interactive API docs (Swagger UI)** at:
+Interactive OpenAPI/Swagger docs are automatically live at:
 👉 **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
 
----
-
-### 3. Run the Model Context Protocol (MCP) Server
-To let MCP-compatible AI clients (like Cursor, Claude Desktop, etc.) use your Brain as a context resource, run the standard stdio MCP server:
+### 3. Start the MCP Server
+To allow MCP-compatible desktop clients (like Cursor or Claude Desktop) to connect directly:
 ```bash
 python3 -m brain.sdk.mcp_server
 ```
 
----
-
-### 4. Run the Unit Test Suite
-To execute the complete suite of 22 rigorous unit and integration tests:
+### 4. Run unit tests
 ```bash
 python3 -m pytest
 ```
 
 ---
 
-## 🔌 API Endpoints Reference
+## 🛠️ Configuration Options
 
-### Ingestion & Memory Logging Endpoints
-* **`POST /projects`**: Initialize a new project node.
-  - Body: `{"name": "MyProj", "summary": "Project summary", "description": "Longer text"}`
-* **`POST /tasks`**: Save active working task state.
-  - Body: `{"project": "MyProj", "task": "Active goal", "active_files": ["main.py"], "errors": []}`
-* **`POST /decision`**: Record architectural decisions and rationales.
-  - Body: `{"project": "MyProj", "title": "Use SQLite", "reason": "Self-contained database", "status": "approved"}`
-* **`POST /failure`**: Log failed attempts to prevent future repeats.
-  - Body: `{"project": "MyProj", "attempted_action": "Use Redis", "reason_for_failure": "WSL2 port conflict"}`
-* **`POST /conversation`**: Record previous chat/interaction transcripts.
-* **`POST /remember`**: Generic knowledge object storage conforming to the unified schema.
-
-### Context Retrieval & Analytics Endpoints
-* **`GET /context/{project}`** / **`POST /context`**: Retrieve the optimal, ranked, and compressed standard Context Package JSON for an active query.
-  - URL Query params: `user_goal` (required) & `current_task` (optional).
-* **`GET /graph`**: Retrieve node and edge representation of the project's knowledge graph (NetworkX model representation).
-* **`GET /timeline`**: Retrieve chronologically sorted historical decisions, meetings, and failures.
-* **`POST /feedback`**: Dynamically adjust object retrieval weights based on task outcome.
-  - Body: `{"id": "node_id", "success": true/false}`
-
----
-
-## 🛠️ Cross-Ecosystem SDK Integration
-
-The Brain is designed to work with all popular backend services. Examples are provided in:
-- **Python**: Full-featured client SDK in `brain/sdk/client.py` and MCP server in `brain/sdk/mcp_server.py`.
-- **TypeScript/JavaScript**: HTTP-based client wrapper in `brain/sdk/client_example.ts`.
-- **Go**: Struct-based HTTP client wrapper in `brain/sdk/client_example.go`.
+| Variable | Description | Default |
+| --- | --- | --- |
+| `BRAIN_DB_PATH` | File path for persistent SQLite database | `brain.db` |
+| `OPENAI_API_KEY` | Optional OpenAI key for embeddings & ChatGPT API completion | `None` (triggers local TF-IDF & mock) |
+| `ANTHROPIC_API_KEY` | Optional Anthropic key for real Claude execution | `None` (triggers high-fidelity mock) |
+| `GEMINI_API_KEY` | Optional Google key for real Gemini execution | `None` (triggers high-fidelity mock) |

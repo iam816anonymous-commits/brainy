@@ -42,12 +42,12 @@ def global_utility(x):
     ingested_ids = ingest_directory(str(src_dir), "MathProj")
 
     # Check that Project exists
-    proj = get_knowledge_object("project::MathProj")
+    proj = get_knowledge_object("project::mathproj")
     assert proj is not None
     assert proj.type == "Project"
 
     # Check that File exists
-    file_id = "file::MathProj::math_service.py"
+    file_id = "file::mathproj::math_service.py"
     file_obj = get_knowledge_object(file_id)
     assert file_obj is not None
     assert file_obj.type == "Code"

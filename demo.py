@@ -150,7 +150,7 @@ class StorageManager:
     # 6. Learning Loop Dynamic Feedback (Phase 10)
     print("[6] Activating Learning Pipeline Loop...")
     # Simulate a user giving negative feedback about the StorageManager class (id is from parsed python file)
-    target_class_id = "file::BrainOS::storage.py::class::StorageManager"
+    target_class_id = "file::brainos::storage.py::class::StorageManager"
     print(f" -> Simulating failure outcome on object '{target_class_id}'...")
 
     feedback_res = LearningPipeline.process_feedback(
