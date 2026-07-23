@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import save_knowledge_object, get_knowledge_object, list_knowledge_objects
+from brain.core.models import KnowledgeObject
+from brain.core.db import save_knowledge_object, get_knowledge_object, list_knowledge_objects
 
 def remember_working_memory(
     project: str,
@@ -12,7 +12,6 @@ def remember_working_memory(
 ) -> str:
     """
     Saves or updates Working Memory (active context).
-    Type: 'Task' or custom type representing working state.
     """
     obj_id = f"working-memory::{project.lower()}"
 
@@ -26,12 +25,12 @@ def remember_working_memory(
 
     obj = KnowledgeObject(
         id=obj_id,
-        type="Task",  # Mapped to unified schema
+        type="Task",
         project=project,
         title="Active Working Memory Context",
         summary=f"Current active task: {current_task}",
         content=content,
-        importance=8.0,  # very high importance for working memory!
+        importance=8.0,
         confidence=1.0,
         tags=["working-memory", "active-state"],
         created=datetime.now(timezone.utc).isoformat(),
@@ -49,10 +48,8 @@ def remember_episodic_memory(
     timestamp: Optional[str] = None
 ) -> str:
     """
-    Saves an episodic memory entry (event history).
-    Type: 'Meeting' or custom episodic record. Let's use 'Meeting' or 'Workflow' as standard unified types.
+    Saves an episodic memory entry.
     """
-    # Use timestamp as unique identifier part
     ts = timestamp or datetime.now(timezone.utc).isoformat()
     clean_ts = ts.replace(":", "-").replace(".", "-")
     obj_id = f"episodic::{project.lower()}::{clean_ts}"
@@ -61,7 +58,7 @@ def remember_episodic_memory(
 
     obj = KnowledgeObject(
         id=obj_id,
-        type="Workflow",  # Standard unified type representing an episode/flow
+        type="Workflow",
         project=project,
         title=f"History Episode: {action}",
         summary=f"Action: {action} -> Outcome: {outcome}",
@@ -85,7 +82,6 @@ def remember_semantic_relation(
     """
     Saves or links concepts semantically.
     """
-    # Verify/create source concept
     id_a = f"concept::{project.lower()}::{concept_a.lower().replace(' ', '_')}"
     id_b = f"concept::{project.lower()}::{concept_b.lower().replace(' ', '_')}"
 
@@ -116,7 +112,6 @@ def remember_semantic_relation(
         )
         save_knowledge_object(obj_b)
 
-    # Append relationship to concept A
     existing_targets = [r["target"] for r in obj_a.relations]
     if id_b not in existing_targets:
         obj_a.relations.append({"target": id_b, "type": relation})
@@ -132,7 +127,6 @@ def remember_decision(
 ) -> str:
     """
     Saves a Decision Memory entry.
-    Type: 'Decision'.
     """
     clean_title = decision_title.lower().replace(" ", "_")[:30]
     obj_id = f"decision::{project.lower()}::{clean_title}"
@@ -143,7 +137,7 @@ def remember_decision(
 
     obj = KnowledgeObject(
         id=obj_id,
-        type="Decision",  # Standard unified type
+        type="Decision",
         project=project,
         title=f"Decision: {decision_title}",
         summary=reason[:150] + "..." if len(reason) > 150 else reason,
@@ -166,7 +160,6 @@ def remember_failure(
 ) -> str:
     """
     Saves a Failure Memory entry.
-    Type: 'Failure'.
     """
     clean_action = attempted_action.lower().replace(" ", "_")[:30]
     obj_id = f"failure::{project.lower()}::{clean_action}"
@@ -177,12 +170,12 @@ def remember_failure(
 
     obj = KnowledgeObject(
         id=obj_id,
-        type="Failure",  # Standard unified type
+        type="Failure",
         project=project,
         title=f"Failure: {attempted_action}",
         summary=reason_for_failure[:150] + "..." if len(reason_for_failure) > 150 else reason_for_failure,
         content=content,
-        importance=8.0,  # failures are highly valuable to avoid repeats!
+        importance=8.0,
         confidence=1.0,
         tags=["failure", "lessons-learned"],
         created=datetime.now(timezone.utc).isoformat(),
@@ -200,7 +193,6 @@ def remember_pattern(
 ) -> str:
     """
     Saves a Pattern Memory entry.
-    Type: 'Pattern'.
     """
     clean_name = pattern_name.lower().replace(" ", "_")[:30]
     obj_id = f"pattern::{project.lower()}::{clean_name}"
@@ -210,7 +202,7 @@ def remember_pattern(
 
     obj = KnowledgeObject(
         id=obj_id,
-        type="Pattern",  # Standard unified type
+        type="Pattern",
         project=project,
         title=f"Pattern: {pattern_name}",
         summary=description or f"Process workflow pattern: {pattern_name}",

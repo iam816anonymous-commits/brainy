@@ -1,0 +1,150 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /app
+configfile: pyproject.toml
+plugins: anyio-4.14.2
+collected 6 items / 11 errors
+
+==================================== ERRORS ====================================
+___________________ ERROR collecting tests/test_adapters.py ____________________
+ImportError while importing test module '/app/tests/test_adapters.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_adapters.py:3: in <module>
+    from brain.storage.db import init_db, save_knowledge_object, get_knowledge_object
+E   ModuleNotFoundError: No module named 'brain.storage'
+______________________ ERROR collecting tests/test_api.py ______________________
+ImportError while importing test module '/app/tests/test_api.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_api.py:4: in <module>
+    from brain.storage.db import init_db
+E   ModuleNotFoundError: No module named 'brain.storage'
+_____________________ ERROR collecting tests/test_cache.py _____________________
+ImportError while importing test module '/app/tests/test_cache.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_cache.py:2: in <module>
+    from brain.context.cache import ContextCache
+brain/context/cache.py:3: in <module>
+    from brain.context.assembler import ContextPackage
+brain/context/assembler.py:4: in <module>
+    from brain.retrieval.ranking.orchestrator import RetrievalOrchestrator
+brain/retrieval/ranking/orchestrator.py:5: in <module>
+    from brain.storage.models import KnowledgeObject
+E   ModuleNotFoundError: No module named 'brain.storage'
+____________________ ERROR collecting tests/test_context.py ____________________
+ImportError while importing test module '/app/tests/test_context.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_context.py:3: in <module>
+    from brain.storage.db import init_db, save_knowledge_object
+E   ModuleNotFoundError: No module named 'brain.storage'
+_____________________ ERROR collecting tests/test_graph.py _____________________
+ImportError while importing test module '/app/tests/test_graph.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_graph.py:3: in <module>
+    from brain.storage.db import init_db, save_knowledge_object
+E   ModuleNotFoundError: No module named 'brain.storage'
+___________________ ERROR collecting tests/test_ingestion.py ___________________
+ImportError while importing test module '/app/tests/test_ingestion.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_ingestion.py:3: in <module>
+    from brain.storage.db import init_db, get_knowledge_object, list_knowledge_objects
+E   ModuleNotFoundError: No module named 'brain.storage'
+______________________ ERROR collecting tests/test_mcp.py ______________________
+ImportError while importing test module '/app/tests/test_mcp.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_mcp.py:4: in <module>
+    from brain.storage.db import init_db, get_knowledge_object
+E   ModuleNotFoundError: No module named 'brain.storage'
+____________________ ERROR collecting tests/test_memory.py _____________________
+ImportError while importing test module '/app/tests/test_memory.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_memory.py:3: in <module>
+    from brain.storage.db import init_db, get_knowledge_object
+E   ModuleNotFoundError: No module named 'brain.storage'
+___________________ ERROR collecting tests/test_retrieval.py ___________________
+ImportError while importing test module '/app/tests/test_retrieval.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_retrieval.py:3: in <module>
+    from brain.storage.db import init_db, save_knowledge_object
+E   ModuleNotFoundError: No module named 'brain.storage'
+______________________ ERROR collecting tests/test_sdk.py ______________________
+ImportError while importing test module '/app/tests/test_sdk.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_sdk.py:7: in <module>
+    from brain.services.knowledge.app import app as knowledge_app
+brain/services/knowledge/app.py:10: in <module>
+    from brain.ingestion.filesystem.parser import ingest_directory
+brain/ingestion/filesystem/parser.py:5: in <module>
+    from brain.ingestion.filesystem.base_parser import BaseParser
+brain/ingestion/filesystem/base_parser.py:3: in <module>
+    from brain.storage.models import KnowledgeObject
+E   ModuleNotFoundError: No module named 'brain.storage'
+_____________________ ERROR collecting tests/test_trace.py _____________________
+ImportError while importing test module '/app/tests/test_trace.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/jules/.pyenv/versions/3.12.13/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_trace.py:3: in <module>
+    from brain.storage.db import init_db, save_knowledge_object
+E   ModuleNotFoundError: No module named 'brain.storage'
+=============================== warnings summary ===============================
+../home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/fastapi/testclient.py:1
+  /home/jules/.pyenv/versions/3.12.13/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR tests/test_adapters.py
+ERROR tests/test_api.py
+ERROR tests/test_cache.py
+ERROR tests/test_context.py
+ERROR tests/test_graph.py
+ERROR tests/test_ingestion.py
+ERROR tests/test_mcp.py
+ERROR tests/test_memory.py
+ERROR tests/test_retrieval.py
+ERROR tests/test_sdk.py
+ERROR tests/test_trace.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 11 errors during collection !!!!!!!!!!!!!!!!!!!
+======================== 1 warning, 11 errors in 1.04s =========================

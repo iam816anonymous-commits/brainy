@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import save_knowledge_object
+from brain.core.models import KnowledgeObject
+from brain.core.db import save_knowledge_object
 
 def ingest_scraped_page(
     url: str,
@@ -15,8 +15,7 @@ def ingest_scraped_page(
     """
     Ingests a browser webpage as a 'Document' KnowledgeObject.
     """
-    obj_id = f"browser::{project_name}::{str(uuid.uuid4())[:8]}"
-
+    obj_id = f"browser::{project_name.lower()}::{str(uuid.uuid4())[:8]}"
     summary = text_content[:200] + "..." if len(text_content) > 200 else text_content
 
     obj = KnowledgeObject(
@@ -27,7 +26,7 @@ def ingest_scraped_page(
         summary=summary,
         content=text_content,
         importance=3.0,
-        confidence=0.8,  # slightly lower confidence on external web crawls
+        confidence=0.8,
         tags=tags + ["browser", "web-scrape"],
         created=datetime.now(timezone.utc).isoformat(),
         updated=datetime.now(timezone.utc).isoformat(),

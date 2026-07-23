@@ -1,7 +1,7 @@
 import os
 import pytest
-from brain.storage.db import init_db, save_knowledge_object
-from brain.storage.models import KnowledgeObject
+from brain.core.db import init_db, save_knowledge_object
+from brain.core.models import KnowledgeObject
 from brain.retrieval.intent import IntentDetector
 from brain.retrieval.planner import RetrievalPlanner
 from brain.retrieval.ranking.orchestrator import RetrievalOrchestrator
@@ -25,7 +25,6 @@ def test_intent_detection():
     assert IntentDetector.detect_intent("Hello how is the weather today?") == "GENERAL"
 
 def test_retrieval_planner_routing():
-    # Save a decision node and general info
     save_knowledge_object(KnowledgeObject(
         id="d-1", type="Decision", project="PlanProj", title="Decision Chosen", summary="Selected SQLite", content="We chose SQLite"
     ))
@@ -35,7 +34,6 @@ def test_retrieval_planner_routing():
 
     gm = KnowledgeGraphManager(project_name="PlanProj")
 
-    # 1. Decision history intent should run keyword but bypass embeddings
     candidates, boosts, intent = RetrievalPlanner.plan_and_retrieve(
         query="Why did we choose SQLite?",
         project="PlanProj",
@@ -44,17 +42,15 @@ def test_retrieval_planner_routing():
     assert intent == "DECISION_HISTORY"
     assert "d-1" in candidates
 
-    # 2. Task status intent should bypass embeddings and graph expansion
     candidates_task, boosts_task, intent_task = RetrievalPlanner.plan_and_retrieve(
         query="what is my current task?",
         project="PlanProj",
         graph_manager=gm
     )
     assert intent_task == "TASK_STATUS"
-    assert len(boosts_task) == 0  # graph expansion bypassed!
+    assert len(boosts_task) == 0
 
 def test_retrieval_and_ranking_orchestration():
-    # Save a few diverse objects
     doc = KnowledgeObject(
         id="doc-1", type="Document", project="GameProj", title="Gameplay mechanics design doc",
         summary="Describes jumping, running, sliding", content="Game utilizes custom gravity vectors for slides.",
@@ -71,7 +67,6 @@ def test_retrieval_and_ranking_orchestration():
         importance=9.0
     )
 
-    # Setup some graph relationship
     doc.relations.append({"target": "dec-1", "type": "influenced_by"})
 
     save_knowledge_object(doc)
@@ -80,14 +75,12 @@ def test_retrieval_and_ranking_orchestration():
 
     orchestrator = RetrievalOrchestrator(project="GameProj")
 
-    # Query 1: Decision-focused query should rank the Decision object higher
     results_dec = orchestrator.retrieve_and_rank("Why did we choose SQLite?")
     assert len(results_dec) > 0
     top_hit = results_dec[0][0]
     assert top_hit.type == "Decision"
     assert top_hit.id == "dec-1"
 
-    # Query 2: Error/traceback focused query should rank Failure higher
     results_err = orchestrator.retrieve_and_rank("What crashed on macOS metal rendering?")
     assert len(results_err) > 0
     top_err_hit = results_err[0][0]

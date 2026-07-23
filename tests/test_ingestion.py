@@ -1,6 +1,6 @@
 import os
 import pytest
-from brain.storage.db import init_db, get_knowledge_object, list_knowledge_objects
+from brain.core.db import init_db, get_knowledge_object, list_knowledge_objects
 from brain.ingestion.filesystem.parser import ingest_directory
 from brain.ingestion.github.ingestor import ingest_github_issue, ingest_github_commit
 from brain.ingestion.docs.ingestor import ingest_markdown_document

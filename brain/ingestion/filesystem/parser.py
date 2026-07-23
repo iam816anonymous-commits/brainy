@@ -1,15 +1,14 @@
 import os
 from typing import List, Dict, Any
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import save_knowledge_object
+from brain.core.models import KnowledgeObject
+from brain.core.db import save_knowledge_object
 from brain.ingestion.filesystem.base_parser import BaseParser
 from brain.ingestion.filesystem.python_parser import PythonParser
 from brain.ingestion.filesystem.default_parser import DefaultParser
 
-# Register pluggable language/file parsers
 REGISTERED_PARSERS: List[BaseParser] = [
     PythonParser(),
-    DefaultParser()  # should always be last as the fallback
+    DefaultParser()
 ]
 
 def ingest_directory(directory_path: str, project_name: str) -> List[str]:
@@ -20,7 +19,6 @@ def ingest_directory(directory_path: str, project_name: str) -> List[str]:
     if not os.path.exists(directory_path):
         return []
 
-    # 1. Create/Ensure Project node exists
     proj_id = f"project::{project_name.lower()}"
     proj_obj = KnowledgeObject(
         id=proj_id,
@@ -40,12 +38,10 @@ def ingest_directory(directory_path: str, project_name: str) -> List[str]:
     dir_to_id = {directory_path: proj_id}
 
     for root, dirs, files in os.walk(directory_path):
-        # Ignore hidden/vcs directories and python cache
         dirs[:] = [d for d in dirs if not d.startswith(".") and d != "__pycache__"]
 
         parent_id = dir_to_id.get(root, proj_id)
 
-        # Ingest Subfolders
         for d in dirs:
             folder_path = os.path.join(root, d)
             rel_path = os.path.relpath(folder_path, directory_path)
@@ -68,7 +64,6 @@ def ingest_directory(directory_path: str, project_name: str) -> List[str]:
             save_knowledge_object(folder_obj)
             ingested_ids.append(folder_id)
 
-        # Ingest Files
         for f in files:
             if f.startswith("."):
                 continue
@@ -106,7 +101,6 @@ def ingest_directory(directory_path: str, project_name: str) -> List[str]:
                 source=file_path
             )
 
-            # Match and execute pluggable parser
             for parser in REGISTERED_PARSERS:
                 if parser.can_parse(file_path):
                     sub_objs = parser.parse(file_path, project_name, file_id)
@@ -114,7 +108,7 @@ def ingest_directory(directory_path: str, project_name: str) -> List[str]:
                         save_knowledge_object(sub)
                         ingested_ids.append(sub.id)
                         file_obj.relations.append({"target": sub.id, "type": "contains"})
-                    break  # only execute the first matching parser
+                    break
 
             save_knowledge_object(file_obj)
             ingested_ids.append(file_id)

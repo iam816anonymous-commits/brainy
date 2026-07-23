@@ -2,8 +2,8 @@ import os
 import re
 from datetime import datetime, timezone
 from typing import List, Dict, Any
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import save_knowledge_object
+from brain.core.models import KnowledgeObject
+from brain.core.db import save_knowledge_object
 
 def ingest_markdown_document(filepath: str, project_name: str) -> str:
     """
@@ -15,11 +15,9 @@ def ingest_markdown_document(filepath: str, project_name: str) -> str:
     with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
         content = f.read()
 
-    # Extract first header as title
     title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
     title = title_match.group(1).strip() if title_match else os.path.basename(filepath)
 
-    # Extract a clean summary from the first paragraph
     paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
     summary = ""
     for p in paragraphs:
@@ -30,7 +28,7 @@ def ingest_markdown_document(filepath: str, project_name: str) -> str:
         summary = f"Documentation file {os.path.basename(filepath)}"
 
     filename = os.path.basename(filepath)
-    obj_id = f"doc::{project_name}::{filename}"
+    obj_id = f"doc::{project_name.lower()}::{filename}"
 
     obj = KnowledgeObject(
         id=obj_id,

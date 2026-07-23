@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from brain.retrieval.ranking.orchestrator import RetrievalOrchestrator
 from brain.compression.compressor import ContextCompressor
-from brain.storage.db import get_knowledge_object
+from brain.core.db import get_knowledge_object
 from brain.context.resource_manager import ContextResourceManager
 from brain.context.trace import ContextTrace, NodeTrace, ObservabilityTraceRegistry
 
@@ -34,14 +34,12 @@ class ContextAssembler:
         """
         start_time = time.time()
 
-        # Initialize Resource Manager & Orchestrator
         resource_mgr = ContextResourceManager(token_budget=token_budget)
         segment_limits = resource_mgr.get_segment_allocations()
 
         orchestrator = RetrievalOrchestrator(project=project)
         search_query = f"{user_goal} {current_task_input or ''}".strip()
 
-        # Retrieve candidates
         candidates_with_scores = orchestrator.retrieve_and_rank(
             query=search_query,
             limit=resource_mgr.retrieval_limit
@@ -55,7 +53,6 @@ class ContextAssembler:
         if working_mem and not current_task:
             current_task = working_mem.summary or working_mem.title
 
-        # Buffer candidates temporarily
         relevant_code_candidates = []
         decisions_candidates = []
         constraints_candidates = []
@@ -76,14 +73,13 @@ class ContextAssembler:
                 "id": obj.id,
                 "title": obj.title,
                 "summary": obj.summary,
-                "content": obj.content,  # keep original first for resource allocations
+                "content": obj.content,
                 "importance": obj.importance,
                 "confidence": obj.confidence,
                 "tags": obj.tags,
                 "score": round(score, 2)
             }
 
-            # Categorize
             if obj.type in ["Code", "Class", "Function", "Test"]:
                 relevant_code_candidates.append(payload)
             elif obj.type == "Decision":
@@ -100,7 +96,6 @@ class ContextAssembler:
             elif obj.type == "Project":
                 architecture_lines.append(f"Project: {obj.title} ({obj.summary})")
 
-            # Log individual node trace
             node_traces.append(NodeTrace(
                 id=obj.id,
                 type=obj.type,
@@ -115,19 +110,16 @@ class ContextAssembler:
                 historical_success_boost=trace_metrics.get("historical_success_boost", 0.0),
                 noise_penalty=trace_metrics.get("noise_penalty", 0.0),
                 final_score=round(score, 2),
-                is_included=False  # updated below after allocations
+                is_included=False
             ))
 
-        # Enforce resource token budgets per segment via the Resource Manager
         relevant_code = resource_mgr.allocate_tokens_to_segment(relevant_code_candidates, segment_limits["relevant_code"])
         decisions = resource_mgr.allocate_tokens_to_segment(decisions_candidates, segment_limits["decisions"])
         constraints = resource_mgr.allocate_tokens_to_segment(constraints_candidates, segment_limits["constraints"])
         known_failures = resource_mgr.allocate_tokens_to_segment(known_failures_candidates, segment_limits["known_failures"])
         related_docs = resource_mgr.allocate_tokens_to_segment(related_docs_candidates, segment_limits["related_docs"])
-        # conversations get generic default limits
         important_conversations = important_conversations_candidates[:3]
 
-        # Update trace inclusions & calculate compression ratios
         included_ids = {
             item["id"] for item in (relevant_code + decisions + constraints + known_failures + related_docs + important_conversations)
         }
@@ -135,7 +127,6 @@ class ContextAssembler:
         for trace in node_traces:
             if trace.id in included_ids:
                 trace.is_included = True
-                # Match to the final compressed item length
                 final_item = next((item for item in (relevant_code + decisions + constraints + known_failures + related_docs + important_conversations) if item["id"] == trace.id), None)
                 if final_item and len(trace.title) > 0:
                     orig_len = next((len(o.content) for o, _, _ in candidates_with_scores if o.id == trace.id), 1)
@@ -162,7 +153,6 @@ class ContextAssembler:
             recommended_actions=recommended_actions
         )
 
-        # Save complete audit trace to registry
         execution_time = (time.time() - start_time) * 1000.0
         ObservabilityTraceRegistry.record_trace(ContextTrace(
             query=search_query,

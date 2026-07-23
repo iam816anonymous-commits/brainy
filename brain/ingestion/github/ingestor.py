@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import save_knowledge_object
+from brain.core.models import KnowledgeObject
+from brain.core.db import save_knowledge_object
 
 def ingest_github_issue(
     project_name: str,
@@ -19,7 +19,7 @@ def ingest_github_issue(
     """
     is_bug = any("bug" in label.lower() for label in labels)
     obj_type = "Bug" if is_bug else "Issue"
-    obj_id = f"github::{project_name}::issue::{issue_number}"
+    obj_id = f"github::{project_name.lower()}::issue::{issue_number}"
 
     obj = KnowledgeObject(
         id=obj_id,
@@ -50,7 +50,7 @@ def ingest_github_commit(
     """
     Ingests a commit into our system, representing code history/changes.
     """
-    obj_id = f"github::{project_name}::commit::{commit_sha[:8]}"
+    obj_id = f"github::{project_name.lower()}::commit::{commit_sha[:8]}"
 
     obj = KnowledgeObject(
         id=obj_id,

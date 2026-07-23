@@ -3,8 +3,8 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import save_knowledge_object, get_knowledge_object, list_knowledge_objects, delete_knowledge_object
+from brain.core.models import KnowledgeObject
+from brain.core.db import save_knowledge_object, get_knowledge_object, list_knowledge_objects, delete_knowledge_object
 from brain.graph.graph_manager import KnowledgeGraphManager
 from brain.memory.manager import (
     remember_working_memory,
@@ -360,7 +360,4 @@ def list_sessions(project: Optional[str] = None):
 
 @router.get("/traces", response_model=List[ContextTrace])
 def list_explainability_traces():
-    """
-    Returns the history of execution tracing details for explainable context retrievals.
-    """
     return ObservabilityTraceRegistry.list_traces()

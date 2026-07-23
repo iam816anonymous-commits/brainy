@@ -3,7 +3,7 @@ import sqlite3
 import json
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
-from brain.storage.models import KnowledgeObject, KnowledgeObjectRelation
+from brain.core.models import KnowledgeObject, KnowledgeObjectRelation
 
 DEFAULT_DB_PATH = "brain.db"
 
@@ -20,7 +20,6 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Expanded Knowledge Objects Table with platform engineering fields
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS knowledge_objects (
         id TEXT PRIMARY KEY,
@@ -33,10 +32,9 @@ def init_db():
         confidence REAL DEFAULT 1.0,
         created TEXT,
         updated TEXT,
-        tags TEXT,          -- JSON list
-        relations TEXT,     -- JSON list
+        tags TEXT,
+        relations TEXT,
 
-        -- Platform engineering fields
         lifecycle TEXT DEFAULT 'Created',
         source TEXT,
         owner TEXT,
@@ -45,10 +43,10 @@ def init_db():
         verified_by TEXT,
         last_verified TEXT,
         visibility TEXT DEFAULT 'internal',
-        permissions TEXT,   -- JSON dict
-        group_name TEXT,    -- SQLite keyword group bypass
-        metadata TEXT,      -- JSON dict
-        payload TEXT        -- JSON dict
+        permissions TEXT,
+        group_name TEXT,
+        metadata TEXT,
+        payload TEXT
     )
     """)
 
@@ -87,7 +85,6 @@ def save_knowledge_object(obj: KnowledgeObject) -> None:
         obj.verified_by, obj.last_verified, obj.visibility, permissions_str, obj.group, metadata_str, payload_str
     ))
 
-    # Refresh explicit relations
     cursor.execute("DELETE FROM relations WHERE source_id = ?", (obj.id,))
     for rel in obj.relations:
         target = rel.get("target")
@@ -111,7 +108,6 @@ def get_knowledge_object(obj_id: str) -> Optional[KnowledgeObject]:
     if not row:
         return None
 
-    # Helper to load JSON with fallback
     def load_json(val: Any, default: Any) -> Any:
         if not val:
             return default
@@ -140,7 +136,6 @@ def get_knowledge_object(obj_id: str) -> Optional[KnowledgeObject]:
         tags=tags,
         relations=relations,
 
-        # Platform engineering loaded values
         lifecycle=row["lifecycle"] or "Created",
         source=row["source"] or "",
         owner=row["owner"] or "",
@@ -185,7 +180,6 @@ def list_knowledge_objects(project: Optional[str] = None, obj_type: Optional[str
     rows = cursor.fetchall()
     conn.close()
 
-    # Helper to load JSON with fallback
     def load_json(val: Any, default: Any) -> Any:
         if not val:
             return default
@@ -216,7 +210,6 @@ def list_knowledge_objects(project: Optional[str] = None, obj_type: Optional[str
             tags=tags,
             relations=relations,
 
-            # Platform engineering fields
             lifecycle=row["lifecycle"] or "Created",
             source=row["source"] or "",
             owner=row["owner"] or "",

@@ -1,7 +1,7 @@
 import os
 import pytest
-from brain.storage.db import init_db, save_knowledge_object
-from brain.storage.models import KnowledgeObject
+from brain.core.db import init_db, save_knowledge_object
+from brain.core.models import KnowledgeObject
 from brain.graph.graph_manager import KnowledgeGraphManager
 
 @pytest.fixture(autouse=True)
@@ -14,7 +14,6 @@ def setup_test_db(tmp_path):
         del os.environ["BRAIN_DB_PATH"]
 
 def test_graph_creation_and_traversal():
-    # Save some knowledge objects with relationships
     proj = KnowledgeObject(
         id="p1", type="Project", project="MyProj", title="My Proj", summary="", content="",
         relations=[{"target": "m1", "type": "contains_module"}]
@@ -34,25 +33,21 @@ def test_graph_creation_and_traversal():
 
     manager = KnowledgeGraphManager(project_name="MyProj")
 
-    # Verify nodes
     assert manager.graph.has_node("p1")
     assert manager.graph.has_node("m1")
     assert manager.graph.has_node("f1")
 
-    # Check edges
     assert manager.graph.has_edge("p1", "m1")
     assert manager.graph.has_edge("m1", "f1")
 
-    # Check related nodes discovery within distance 1 or 2
     related_to_p1 = manager.get_related_nodes("p1", max_distance=1)
     assert "p1" in related_to_p1
     assert "m1" in related_to_p1
-    assert "f1" not in related_to_p1  # distance is 2
+    assert "f1" not in related_to_p1
 
     related_to_p1_dist2 = manager.get_related_nodes("p1", max_distance=2)
     assert "f1" in related_to_p1_dist2
 
-    # Subgraph serialization
     sub = manager.get_subgraph(["p1", "m1"])
     assert len(sub["nodes"]) == 2
     assert len(sub["edges"]) == 1

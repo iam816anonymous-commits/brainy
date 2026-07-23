@@ -4,8 +4,8 @@ from typing import List, Tuple, Optional
 import numpy as np
 import requests
 from brain.retrieval.base import BaseRetriever
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import list_knowledge_objects
+from brain.core.models import KnowledgeObject
+from brain.core.db import list_knowledge_objects
 
 def cosine_similarity(v1: np.ndarray, v2: np.ndarray) -> float:
     norm1 = np.linalg.norm(v1)
@@ -98,7 +98,6 @@ class EmbeddingRetriever(BaseRetriever):
 
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
-            # Fallback and scale cosine output (0.0 to 1.0) up to (0.0 to 10.0)
             return [(obj, sim * 10.0) for obj, sim in LocalVectorSimilarity.compute_similarity(query, objs)]
 
         query_emb = self.get_openai_embedding(query, api_key)
@@ -108,9 +107,7 @@ class EmbeddingRetriever(BaseRetriever):
         return [(obj, sim * 10.0) for obj, sim in LocalVectorSimilarity.compute_similarity(query, objs)]
 
 class EmbeddingSearcher:
-    # Backwards compatibility helper
     @classmethod
     def search(cls, query: str, project: str) -> List[Tuple[KnowledgeObject, float]]:
         retriever = EmbeddingRetriever()
-        # Scale back to 0-1 cosine similarity for compatibility
         return [(obj, score / 10.0) for obj, score in retriever.retrieve(query, project)]

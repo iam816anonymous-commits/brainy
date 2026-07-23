@@ -2,16 +2,13 @@ import os
 import ast
 from typing import List
 from brain.ingestion.filesystem.base_parser import BaseParser
-from brain.storage.models import KnowledgeObject
+from brain.core.models import KnowledgeObject
 
 class PythonParser(BaseParser):
     def can_parse(self, filepath: str) -> bool:
         return filepath.lower().endswith(".py")
 
     def parse(self, filepath: str, project_name: str, parent_id: str) -> List[KnowledgeObject]:
-        """
-        Parses a python file using AST and extracts Classes, Functions, and Tests as KnowledgeObjects.
-        """
         objs = []
         try:
             with open(filepath, "r", encoding="utf-8") as f:

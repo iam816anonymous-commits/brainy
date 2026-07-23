@@ -1,7 +1,7 @@
 import os
 import pytest
-from brain.storage.db import init_db, save_knowledge_object, get_knowledge_object
-from brain.storage.models import KnowledgeObject
+from brain.core.db import init_db, save_knowledge_object, get_knowledge_object
+from brain.core.models import KnowledgeObject
 from brain.context.assembler import ContextPackage
 from brain.adapters.chatgpt import ChatGPTAdapter
 from brain.adapters.claude import ClaudeAdapter
@@ -64,18 +64,18 @@ def test_learning_pipeline_feedback():
     assert res_success["success_registered"] is True
 
     obj_retrieved = get_knowledge_object(obj_id)
-    assert obj_retrieved.confidence == 0.9  # 0.8 + 0.1
-    assert obj_retrieved.importance == 5.5  # 5.0 + 0.5
+    assert obj_retrieved.confidence == 0.9
+    assert obj_retrieved.importance == 5.5
 
     # 2. Failure feedback
     res_failure = LearningPipeline.process_feedback(obj_id, success=False, user_notes="Layout broken on mobile devices")
     assert res_failure["success_registered"] is False
 
     obj_retrieved_2 = get_knowledge_object(obj_id)
-    assert obj_retrieved_2.confidence == 0.7  # 0.9 - 0.2
+    assert obj_retrieved_2.confidence == 0.7
 
     # Check that a Failure Memory was automatically recorded
-    from brain.storage.db import list_knowledge_objects
+    from brain.core.db import list_knowledge_objects
     all_failures = list_knowledge_objects(project="LearnProj", obj_type="Failure")
     assert len(all_failures) == 1
     assert "HTML template" in all_failures[0].content

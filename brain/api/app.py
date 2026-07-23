@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from brain.storage.db import init_db
+from brain.core.db import init_db
 from brain.api.routes import router
 
 @asynccontextmanager

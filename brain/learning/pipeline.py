@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
-from brain.storage.db import get_knowledge_object, save_knowledge_object
+from brain.core.db import get_knowledge_object, save_knowledge_object
 from brain.memory.manager import remember_failure
 
 class LearningPipeline:
@@ -13,16 +13,12 @@ class LearningPipeline:
     ) -> Dict[str, Any]:
         """
         Processes feedback from an AI response outcome.
-        If success is False, we automatically record a Failure Memory entry
-        and penalize the original knowledge object's confidence.
-        If success is True, we reinforce the object's confidence and importance.
         """
         obj = get_knowledge_object(obj_id)
         updates = {}
 
         if obj:
             if success:
-                # Reinforce
                 old_conf = obj.confidence
                 old_imp = obj.importance
                 obj.confidence = min(obj.confidence + 0.1, 1.0)
@@ -34,7 +30,6 @@ class LearningPipeline:
                     "importance": f"{old_imp:.1f} -> {obj.importance:.1f}"
                 }
             else:
-                # Penalize confidence
                 old_conf = obj.confidence
                 obj.confidence = max(obj.confidence - 0.2, 0.0)
                 obj.updated = datetime.now(timezone.utc).isoformat()
@@ -43,7 +38,6 @@ class LearningPipeline:
                     "confidence": f"{old_conf:.2f} -> {obj.confidence:.2f}"
                 }
 
-                # If failure, automatically seed a Failure Memory to avoid this in future
                 proj = project_name or obj.project
                 remember_failure(
                     project=proj,

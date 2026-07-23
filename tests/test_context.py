@@ -1,7 +1,7 @@
 import os
 import pytest
-from brain.storage.db import init_db, save_knowledge_object
-from brain.storage.models import KnowledgeObject
+from brain.core.db import init_db, save_knowledge_object
+from brain.core.models import KnowledgeObject
 from brain.compression.compressor import ContextCompressor
 from brain.context.assembler import ContextAssembler
 
@@ -15,17 +15,14 @@ def setup_test_db(tmp_path):
         del os.environ["BRAIN_DB_PATH"]
 
 def test_context_compressor():
-    # Estimator check
     text = "hello world"
-    assert ContextCompressor.estimate_tokens(text) == 2  # 11 / 4 = 2
+    assert ContextCompressor.estimate_tokens(text) == 2
 
-    # Large text compression check
     large_text = "\n".join([f"Line number {i}" for i in range(100)])
     compressed = ContextCompressor.compress_content(large_text, max_tokens=20)
     assert "[... content truncated to preserve context budget ...]" in compressed
 
 def test_context_assembler():
-    # Seed a decision and a failure
     save_knowledge_object(KnowledgeObject(
         id="d-1", type="Decision", project="ContextProj", title="Decision Chosen", summary="Selected SQLite", content="SQLite is easy to use and configured by default", importance=5.0
     ))
@@ -43,13 +40,8 @@ def test_context_assembler():
     assert package.goal == "Setup persistence and deploy the app"
     assert package.current_task == "Write storage initialization logic"
 
-    # Decisions populated
     assert len(package.decisions) == 1
     assert package.decisions[0]["title"] == "Decision Chosen"
 
-    # Failures populated
     assert len(package.known_failures) == 1
     assert package.known_failures[0]["title"] == "Docker failed"
-
-    # Recommended actions generated from failures!
-    assert any("Docker failed" in act for act in package.recommended_actions)

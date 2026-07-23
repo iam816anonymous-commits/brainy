@@ -2,8 +2,8 @@ import os
 import re
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Tuple, Set, Optional
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import list_knowledge_objects, get_knowledge_object
+from brain.core.models import KnowledgeObject
+from brain.core.db import list_knowledge_objects, get_knowledge_object
 from brain.graph.graph_manager import KnowledgeGraphManager
 from brain.retrieval.planner import RetrievalPlanner
 
@@ -18,20 +18,16 @@ class RetrievalOrchestrator:
         Returns:
             List of (KnowledgeObject, final_score, trace_metrics_dictionary)
         """
-        # Ensure graph is fresh
         self.graph_manager.build_graph()
 
-        # 1. Delegate retrieval planning and execution to the RetrievalPlanner
         candidate_similarities, graph_boosts, intent = RetrievalPlanner.plan_and_retrieve(
             query=query,
             project=self.project,
             graph_manager=self.graph_manager
         )
 
-        # Collect candidates
         candidate_ids = set(candidate_similarities.keys()) | set(graph_boosts.keys())
 
-        # If no candidates, fallback to recent items
         if not candidate_ids:
             all_objs = list_knowledge_objects(project=self.project)
             candidate_ids = {obj.id for obj in all_objs[:15]}
@@ -44,7 +40,6 @@ class RetrievalOrchestrator:
             if not obj:
                 continue
 
-            # Unified Context Ranking Formula
             similarity_score = candidate_similarities.get(cid, 0.0)
             importance_score = obj.importance
 

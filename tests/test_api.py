@@ -1,7 +1,7 @@
 import os
 import pytest
 from fastapi.testclient import TestClient
-from brain.storage.db import init_db
+from brain.core.db import init_db
 from brain.api.app import app
 
 @pytest.fixture(autouse=True)
@@ -37,7 +37,7 @@ def test_api_endpoints():
     resp = client.get("/timeline?project=ApiProj")
     assert resp.status_code == 200
     timeline = resp.json()
-    assert len(timeline) >= 2  # contains decision and failure
+    assert len(timeline) >= 2
 
     # 6. Fetch graph
     resp = client.get("/graph?project=ApiProj")

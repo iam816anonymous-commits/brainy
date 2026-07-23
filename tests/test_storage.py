@@ -1,7 +1,7 @@
 import os
 import pytest
-from brain.storage.db import init_db, save_knowledge_object, get_knowledge_object, list_knowledge_objects, delete_knowledge_object
-from brain.storage.models import KnowledgeObject
+from brain.core.db import init_db, save_knowledge_object, get_knowledge_object, list_knowledge_objects, delete_knowledge_object
+from brain.core.models import KnowledgeObject
 
 @pytest.fixture(autouse=True)
 def setup_test_db(tmp_path):

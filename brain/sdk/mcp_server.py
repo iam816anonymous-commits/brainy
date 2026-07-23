@@ -2,8 +2,8 @@ import os
 import json
 from typing import List, Optional, Dict, Any
 from mcp.server.fastmcp import FastMCP
-from brain.storage.db import init_db, save_knowledge_object, get_knowledge_object
-from brain.storage.models import KnowledgeObject
+from brain.core.db import init_db, save_knowledge_object, get_knowledge_object
+from brain.core.models import KnowledgeObject
 from brain.context.assembler import ContextAssembler
 
 # Initialize FastMCP Server

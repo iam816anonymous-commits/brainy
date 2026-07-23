@@ -1,6 +1,6 @@
 import os
 import pytest
-from brain.storage.db import init_db, get_knowledge_object
+from brain.core.db import init_db, get_knowledge_object
 from brain.memory.manager import (
     remember_working_memory,
     remember_episodic_memory,

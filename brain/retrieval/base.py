@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Any
-from brain.storage.models import KnowledgeObject
+from brain.core.models import KnowledgeObject
 
 class BaseRetriever(ABC):
     @abstractmethod

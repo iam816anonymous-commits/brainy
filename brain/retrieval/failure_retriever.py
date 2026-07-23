@@ -1,16 +1,13 @@
 from typing import List, Tuple
 from brain.retrieval.base import BaseRetriever
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import list_knowledge_objects
+from brain.core.models import KnowledgeObject
+from brain.core.db import list_knowledge_objects
 
 class FailureRetriever(BaseRetriever):
     def get_name(self) -> str:
         return "failure_retriever"
 
     def retrieve(self, query: str, project: str, **kwargs) -> List[Tuple[KnowledgeObject, float]]:
-        """
-        Retrieves matching Failure/Bug/Issue type KnowledgeObjects from Structured Storage.
-        """
         failures = list_knowledge_objects(project=project)
         results = []
 

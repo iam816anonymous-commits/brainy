@@ -2,8 +2,8 @@ import math
 import re
 from typing import List, Tuple
 from brain.retrieval.base import BaseRetriever
-from brain.storage.models import KnowledgeObject
-from brain.storage.db import list_knowledge_objects
+from brain.core.models import KnowledgeObject
+from brain.core.db import list_knowledge_objects
 
 def tokenize(text: str) -> List[str]:
     return re.findall(r"\w+", text.lower())
@@ -43,7 +43,6 @@ class KeywordRetriever(BaseRetriever):
                     score += term_score
 
             if score > 0.0:
-                # Normalize keyword score to a reasonable 0-10 scale
                 norm_score = min(score * 2.0, 10.0)
                 scored_objs.append((obj, norm_score))
 
@@ -51,10 +50,7 @@ class KeywordRetriever(BaseRetriever):
         return scored_objs
 
 class KeywordSearcher:
-    # Maintain backwards compatibility helper
     @staticmethod
     def search(query: str, project: str) -> List[Tuple[KnowledgeObject, float]]:
         retriever = KeywordRetriever()
-        # Scale back to original unnormalized score for compatibility if needed,
-        # but returning normalized is actually safer!
         return [(obj, score / 2.0) for obj, score in retriever.retrieve(query, project)]
